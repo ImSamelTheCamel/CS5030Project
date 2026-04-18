@@ -1,0 +1,51 @@
+Vorticity Project Results (CHPC)
+Date: 2026-04-18
+System: University of Utah CHPC (notchpeak)
+Dataset: cyl2d_1300x600_float32[2].raw
+Grid: 1300 x 600
+
+Build and Validation Summary
+- All implementations compiled on CHPC: serial, OpenMP, MPI CPU, CUDA, MPI+CUDA.
+- Validation script used: validate.py
+- Validation status for OpenMP, MPI CPU, CUDA, and MPI+CUDA against serial: PASSED
+- Max absolute difference in all reported checks: 0.0
+
+Scaling Study Data Sources (CSV)
+- results/cpu_scaling_12182521.csv
+- results/cuda_blocks_12182519.csv
+- results/mpi_cpu_scaling_12183703.csv
+- results/mpi_cuda_scaling_12183704.csv
+
+Scaling Study Summary (median of 5 runs)
+
+Serial baseline
+- Serial median runtime: 0.00696158 s
+
+1 vs 2: Serial vs OpenMP (shared-memory CPU)
+- OpenMP 1 thread: 0.00610536 s, speedup 1.14x
+- OpenMP 2 threads: 0.00294480 s, speedup 2.36x
+- OpenMP 4 threads: 0.00325876 s, speedup 2.14x
+- OpenMP 8 threads: 0.01579860 s, speedup 0.44x
+- OpenMP 16 threads: 0.02156770 s, speedup 0.32x
+
+3: CUDA block-size experiment (kernel-only timing)
+- 8x8: 0.041440 ms
+- 16x16: 0.036384 ms
+- 32x8: 0.038592 ms
+- 32x16: 0.035936 ms (best median)
+
+4 vs 5: Distributed CPU vs Distributed GPU
+MPI CPU (runtime in seconds)
+- 2 nodes / 2 ranks: 0.00323051 s, speedup vs serial 2.15x
+- 4 nodes / 4 ranks: 0.00161524 s, speedup vs serial 4.31x
+
+MPI + CUDA (local kernel runtime in ms, block 16x16)
+- 2 nodes / 2 ranks: 0.024672 ms
+- 4 nodes / 4 ranks: 0.019936 ms
+
+Important timing note
+- CUDA and MPI+CUDA values above are kernel-only times reported by the program, not full end-to-end runtime including memory transfer and setup.
+
+CHPC launch note
+- On this CHPC OpenMPI build, direct `srun` launch for MPI app processes failed with PMI/PMIx errors.
+- Working method: submit via `sbatch`, then launch MPI ranks inside allocation with `mpirun`.

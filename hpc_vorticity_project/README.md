@@ -115,7 +115,7 @@ mpirun -np 2 ./mpi_cuda_vorticity --input cyl2d_1300x600_float32[2].raw --output
 ```bash
 #!/bin/bash
 #SBATCH --account=YOUR_ACCOUNT
-#SBATCH --partition=kingspeak
+#SBATCH --partition=notchpeak-freecycle
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -133,7 +133,7 @@ export OMP_NUM_THREADS=8
 ```bash
 #!/bin/bash
 #SBATCH --account=YOUR_ACCOUNT
-#SBATCH --partition=kingspeak-gpu
+#SBATCH --partition=notchpeak-gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
@@ -181,29 +181,47 @@ module load cuda
 - Launch one CUDA thread per local cell.
 - Gather the local scalar results back to rank 0.
 
-## Scaling study plan
+## Scaling study scripts (CHPC)
 
-### Compare 1 vs 2
-Run:
-- `serial_vorticity`
-- `openmp_vorticity`
-- `cuda_vorticity`
-- `mpi_vorticity`
-- `mpi_cuda_vorticity`
+The project includes ready-to-run SLURM scripts in `slurm/`:
+- `slurm/cpu_scaling.slurm` - serial vs OpenMP thread scaling (`1, 2, 4, 8, 16`)
+- `slurm/cuda_blocks.slurm` - CUDA block-size comparison (`8x8, 16x16, 32x8, 32x16`)
+- `slurm/mpi_cpu_scaling.slurm` - MPI CPU scaling (`2` and `4` ranks/nodes)
+- `slurm/mpi_cuda_scaling.slurm` - MPI+CUDA scaling (`2` and `4` ranks/nodes, one GPU per rank)
 
-Record runtime and speedup relative to serial.
+Before submitting jobs:
+- Set your CHPC account in each script (`#SBATCH --account=YOUR_ACCOUNT`).
+- Adjust partitions if your environment uses different names.
+- Confirm the input path points to your raw file.
+- For MPI jobs on this CHPC setup, use `mpirun` inside the allocation (not direct `srun` launch with OpenMPI).
 
-### Compare 3
-For OpenMP:
-- test thread counts such as 1, 2, 4, 8
+Submit from the project root so outputs and relative paths resolve correctly:
+```bash
+cd ~/Project/hpc_vorticity_project
 
-For CUDA:
-- test block sizes such as `8x8`, `16x16`, `32x8`, `32x16`
+sbatch -A usucs6030 -p notchpeak-freecycle --chdir="$PWD" slurm/cpu_scaling.slurm
+sbatch -A notchpeak-gpu -p notchpeak-gpu --chdir="$PWD" slurm/cuda_blocks.slurm
+sbatch -A usucs6030 -p notchpeak-freecycle --chdir="$PWD" slurm/mpi_cpu_scaling.slurm
+sbatch -A notchpeak-gpu -p notchpeak-gpu --chdir="$PWD" slurm/mpi_cuda_scaling.slurm
+```
 
-### Compare 4 vs 5
-Use 2 to 4 nodes or 2 to 4 ranks with one GPU per rank where available.
-- MPI CPU: compare `-np 2` and `-np 4`
-- MPI CUDA: compare `-np 2` and `-np 4`
+If your account/partition names differ, check:
+```bash
+sinfo -s
+sacctmgr -n show assoc where user=$USER format=Account%30,Partition%30,QOS%30
+```
+
+Each script writes CSV output in `results/`:
+- `results/cpu_scaling_<jobid>.csv`
+- `results/cuda_blocks_<jobid>.csv`
+- `results/mpi_cpu_scaling_<jobid>.csv`
+- `results/mpi_cuda_scaling_<jobid>.csv`
+
+Timing interpretation:
+- CPU CSV files report runtime in seconds.
+- CUDA CSV files report kernel runtime in milliseconds (kernel-only, not full end-to-end runtime).
+
+Use `templates/scaling_results_template.csv` as a report table template.
 
 ## Validation
 
@@ -222,28 +240,25 @@ Generate PNG images from the raw outputs:
 python3 visualize.py serial_vorticity.raw serial_magnitude.raw 1300 600 serial
 ```
 
-## Work division example for a 2-person team
+## Work division for this submission
 
-Person 1:
-- serial CPU
-- OpenMP CPU
-- MPI CPU
-- validation scripts and CPU scaling plots
+Author: Sam Willden
 
-Person 2:
-- CUDA GPU
-- MPI + CUDA GPU
-- visualization scripts
-- GPU block-size experiments and report figures
-
-Shared:
-- correctness checks
-- batch scripts
-- final report and presentation
+Completed by this author:
+- serial CPU implementation
+- OpenMP CPU implementation
+- CUDA GPU implementation
+- MPI CPU implementation
+- MPI + CUDA implementation
+- validation script usage and correctness checks
+- CHPC job scripts and scaling experiments
+- visualization output generation
+- README and results documentation
 
 ## Notes
 
 - The CPU versions reuse the exact starter vorticity function.
 - The GPU versions mirror the same indexing and finite-difference logic.
 - All outputs are written as float32 raw scalar fields.
+- On this CHPC OpenMPI build, MPI jobs should be launched with `mpirun` inside SLURM allocations.
 - If you reuse any external code in the future, cite it in your report and source comments.
