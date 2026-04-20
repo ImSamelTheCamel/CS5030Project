@@ -221,8 +221,6 @@ Timing interpretation:
 - CPU CSV files report runtime in seconds.
 - CUDA CSV files report kernel runtime in milliseconds (kernel-only, not full end-to-end runtime).
 
-Use `templates/scaling_results_template.csv` as a report table template.
-
 ## Validation
 
 Use the serial vorticity file as the reference:
