@@ -9,6 +9,8 @@ def save_image(data, width, height, title, out_png):
     plt.imshow(image)
     plt.colorbar()
     plt.title(title)
+    plt.xlabel("X index (column)")
+    plt.ylabel("Y index (row)")
     plt.tight_layout()
     plt.savefig(out_png, dpi=150)
     plt.close()
